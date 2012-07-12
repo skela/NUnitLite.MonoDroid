@@ -15,4 +15,8 @@ _ReSharper*/
 *.csproj.user
 *.resharper*
 *.suo
+.DS_Store
+
+NUnitLite.MonoDroid.Runner/Resources/Resource.designer.cs
+NUnitLite.MonoDroid/Resources/Resource.designer.cs
 
