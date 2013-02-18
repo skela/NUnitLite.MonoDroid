@@ -35,7 +35,7 @@ namespace NUnitLite.Runner
 
         public override void WriteLine(string value)
         {
-            Debug.WriteLine(value);
+            Debug.WriteLine(this,value);
         }
 
         public override System.Text.Encoding Encoding
