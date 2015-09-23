@@ -1,6 +1,7 @@
 
 #ignore thumbnails created by windows
 Thumbs.db
+
 #Ignore files build by Visual Studio
 *.obj
 *.pdb
@@ -20,3 +21,5 @@ _ReSharper*/
 NUnitLite.MonoDroid.Runner/Resources/Resource.designer.cs
 NUnitLite.MonoDroid/Resources/Resource.designer.cs
 
+#Ignore merge conflict remnants
+*.orig

@@ -1,24 +1,20 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-
+using System.Threading.Tasks;
 using Android.App;
-using Android.Content;
-using Android.Graphics;
 using Android.OS;
-using Android.Runtime;
-using Android.Text;
 using Android.Views;
-using Android.Widget;
 
 namespace NUnitLite.MonoDroid
 {
     /// <summary>
     /// Displays the details of a run
     /// </summary>
-    public abstract class TestRunDetailsActivity: Activity
+    public abstract class TestRunDetailsActivity: Activity, ITestListener
     {
+        private TestRunInfo _testRunInfo;
+        private TestRunDetailsView _detailsView;
+
         /// <summary>
         /// Handles the creation of the activity
         /// </summary>
@@ -27,49 +23,52 @@ namespace NUnitLite.MonoDroid
         {
             base.OnCreate(savedInstanceState);
 
-            string testCaseName = Intent.GetStringExtra("TestCaseName");
-            var testRunInfo = TestRunContext.Current.TestResults.First(item => item.TestCaseName == testCaseName);
+            var testCaseName = Intent.GetStringExtra("TestCaseName");
+            _testRunInfo = TestRunContext.Current.TestResults.First(item => item.TestCaseName == testCaseName);
 
-            SetContentView(CreateView(testRunInfo));
+            _detailsView = new TestRunDetailsView(this, _testRunInfo) { Description = DefaultDescription };
+            SetContentView(_detailsView);
         }
 
-        private View CreateView(TestRunInfo testRunDetails)
+        public override bool OnCreateOptionsMenu(IMenu menu)
         {
-            LinearLayout layout = new LinearLayout(this);
-            layout.Orientation = Orientation.Vertical;
+            menu.Add("Re-run");
+            return true;
+        }
 
-            TextView titleTextView = new TextView(this);
-            titleTextView.LayoutParameters = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.FillParent, 48);
+        public override bool OnOptionsItemSelected(IMenuItem item)
+        {
+            var testCase = (TestCase) _testRunInfo.TestResult.Test;
 
-            titleTextView.SetBackgroundColor(Color.Argb(255,50,50,50));
-            titleTextView.SetPadding(20,0,20,0);
-
-            titleTextView.Gravity = GravityFlags.CenterVertical;
-            titleTextView.Text = testRunDetails.Description;
-            titleTextView.Ellipsize = TextUtils.TruncateAt.Start;
-
-            TextView descriptionTextView = new TextView(this);
-            descriptionTextView.LayoutParameters = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.FillParent, LinearLayout.LayoutParams.WrapContent)
+            // Start the test process in a background task
+            Task.Factory.StartNew(() =>
             {
-                LeftMargin = 40,
-                RightMargin = 40
-            };
+                testCase.Run(this);
+            });
 
-            descriptionTextView.Text = testRunDetails.TestResult.Message + 
-                "\r\n\r\n" + testRunDetails.TestResult.StackTrace;
+            return true;
+        }
 
-            ScrollView scrollView = new ScrollView(this);
-            scrollView.LayoutParameters = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.FillParent, LinearLayout.LayoutParams.FillParent);
+        public void TestStarted(ITest test)
+        {
+            _testRunInfo.Running = true;
+            RunOnUiThread(() => _detailsView.Description = "Running...");
+        }
 
-            scrollView.AddView(descriptionTextView);
+        public void TestFinished(TestResult result)
+        {
+            _testRunInfo.Running = false;
+            _testRunInfo.Passed = result.IsSuccess;
+            _testRunInfo.TestResult = result;
+            RunOnUiThread(() => _detailsView.Description = DefaultDescription);
+        }
 
-            layout.AddView(titleTextView);
-            layout.AddView(scrollView);
-
-            return layout;
+        private string DefaultDescription
+        {
+            get
+            {
+                return _testRunInfo.TestResult.Message + "\r\n\r\n" + _testRunInfo.TestResult.StackTrace;
+            }
         }
     }
 }

@@ -14,9 +14,9 @@ namespace NUnitLite.MonoDroid
     /// <summary>
     /// Derive from this activity to create a standard test runner activity in your app.
     /// </summary>
-    public abstract class TestRunnerActivity : ListActivity
+    public abstract class TestRunnerExpandableActivity : ExpandableListActivity
     {
-        private TestResultsListAdapter _testResultsAdapter;
+        private TestResultsExpandableListAdapter _testResultsAdapter;
 
         /// <summary>
         /// Handles the creation of the activity
@@ -25,8 +25,8 @@ namespace NUnitLite.MonoDroid
         {
             base.OnCreate(savedInstanceState);
 
-            _testResultsAdapter = new TestResultsListAdapter(this);
-            ListAdapter = _testResultsAdapter;
+            _testResultsAdapter = new TestResultsExpandableListAdapter(this);
+            SetListAdapter(_testResultsAdapter);
 
             RunTests();
         }
@@ -54,20 +54,22 @@ namespace NUnitLite.MonoDroid
         /// <summary>
         /// Handles list item click
         /// </summary>
-        protected override void OnListItemClick(ListView l, View v, int position, long id)
+        public override bool OnChildClick(ExpandableListView parent, View v, int groupPosition, int childPosition, long id)
         {
-            var testRunItem = TestRunContext.Current.TestResults[position];
+            var testRunItem = TestRunContext.Current.GetGroupChild(groupPosition, childPosition);
 
             if (testRunItem.Running)
             {
                 Toast.MakeText(this, "This test is still running.", ToastLength.Short).Show();
-                return;
+                return true;
             }
 
             var intent = new Intent(this, GetDetailsActivityType);
             intent.PutExtra("TestCaseName", testRunItem.TestCaseName);
 
             StartActivity(intent);
+
+            return true;
         }
 
         /// <summary>
@@ -91,7 +93,7 @@ namespace NUnitLite.MonoDroid
             _testResultsAdapter.NotifyDataSetChanged();
 
             // Add a test listener for the test runner
-            testRunner.AddListener(new UITestListener((TestResultsListAdapter)ListAdapter));
+            testRunner.AddListener(new UITestListener((TestResultsExpandableListAdapter)ExpandableListAdapter));
 
             // Start the test process in a background task
             Task.Factory.StartNew(() =>

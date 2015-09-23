@@ -1,14 +1,6 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
 using Android.App;
-using Android.Content;
 using Android.OS;
-using Android.Runtime;
-using Android.Views;
-using Android.Widget;
 
 namespace NUnitLite.MonoDroid
 {
@@ -17,42 +9,35 @@ namespace NUnitLite.MonoDroid
     /// </summary>
     public class UITestListener : ITestListener
     {
-        private Handler _threadHandler;
-        private TestResultsListAdapter _listAdapter;
+        private readonly Handler _threadHandler;
+        private readonly IBaseAdapter _adapter;
 
         /// <summary>
         /// Initializes a new instance <see cref="UITestListener"/>
         /// </summary>
-        /// <param name="listAdapter"></param>
-        public UITestListener(TestResultsListAdapter listAdapter)
+        public UITestListener(IBaseAdapter adapter)
         {
             // Create a new thread handler for the main looper.
             // This handler is used to post code from the background thread
             // back to the UI thread.
             _threadHandler = new Handler(Application.Context.MainLooper);
 
-            _listAdapter = listAdapter;
+            _adapter = adapter;
         }
 
         /// <summary>
         /// Handles when a test is started
         /// </summary>
-        /// <param name="test"></param>
         public void TestStarted(ITest test)
         {
             _threadHandler.Post(() =>
             {
-                TestRunContext.Current.TestResults.Add(new TestRunInfo()
-                {
-                    Description = test.Name,
-                    TestCaseName = test.FullName,
-                    Running = true,
-                    Passed = false,
-                    IsTestSuite = test is TestSuite
-                });
+                var testRunInfo = TestRunContext.Current.FindOrAddTestRunInfo(test);
+                testRunInfo.Running = true;
+                testRunInfo.Passed = false;
 
-                _listAdapter.NotifyDataSetInvalidated();
-                _listAdapter.NotifyDataSetChanged();
+                _adapter.NotifyDataSetInvalidated();
+                _adapter.NotifyDataSetChanged();
             });
         }
 
@@ -64,19 +49,15 @@ namespace NUnitLite.MonoDroid
         {
             _threadHandler.Post(() =>
             {
-                var testRunItem = TestRunContext.Current.TestResults
-                    .FirstOrDefault(item => item.TestCaseName == result.Test.FullName);
+                var testRunInfo = TestRunContext.Current.FindOrAddTestRunInfo(result.Test);
+                testRunInfo.Passed = result.IsSuccess;
+                testRunInfo.Running = false;
+                testRunInfo.TestResult = result;
 
-                if (testRunItem != null)
-                {
-                    testRunItem.Passed = result.IsSuccess;
-                    testRunItem.Running = false;
-                    testRunItem.TestResult = result;
-                }
-
-                _listAdapter.NotifyDataSetInvalidated();
-                _listAdapter.NotifyDataSetChanged();
+                _adapter.NotifyDataSetInvalidated();
+                _adapter.NotifyDataSetChanged();
             });
         }
+
     }
 }

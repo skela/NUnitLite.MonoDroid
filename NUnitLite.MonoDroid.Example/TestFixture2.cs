@@ -4,10 +4,28 @@ using NUnit.Framework;
 namespace NUnitLite.MonoDroid.Example
 {
     [TestFixture]
-    public class TestFixture
+    public class TestFixture2
     {
+        [SetUp]
+        public void SetUp()
+        {
+             /* ... */
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+             /* ... */
+        }
+
         [Test]
         public void TestPass()
+        {
+            Assert.That(true);
+        }
+
+        [Test, Ignore]
+        public void TestIgnore()
         {
             Assert.That(true);
         }
